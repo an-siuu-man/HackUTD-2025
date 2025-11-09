@@ -46,7 +46,7 @@ def analyze_terms_and_conditions(terms_data: str) -> Dict[str, Any]:
         terms_data: The terms and conditions text to analyze
         
     Returns:
-        Dictionary with score and all_analysis
+        Dictionary with score, summary, and items
     """
     
     # Step 1: Generate comprehensive analysis with flags
@@ -59,9 +59,9 @@ Output format (ONLY this, nothing else):
 {{
     "summary": "2-3 sentence overview of the terms",
     "findings": [
-        {{"title": "First Issue", "analysis": "Clear explanation", "flag": "critical"}},
-        {{"title": "Second Point", "analysis": "Clear explanation", "flag": "warning"}},
-        {{"title": "Positive Aspect", "analysis": "Clear explanation", "flag": "good"}}
+        {{"title": "First Issue", "description": "Clear explanation", "flag": "critical", "category": "privacy"}},
+        {{"title": "Second Point", "description": "Clear explanation", "flag": "warning", "category": "payment"}},
+        {{"title": "Positive Aspect", "description": "Clear explanation", "flag": "good", "category": "security"}}
     ]
 }}
 
@@ -71,6 +71,14 @@ Flags:
 - critical: Data selling, no refunds, binding arbitration, unclear liability, excessive control
 - warning: Vague terms, data sharing, limited rights, jurisdiction issues
 - good: Clear policies, user protections, transparency, fair terms
+
+Categories:
+- privacy: Data collection, sharing, and privacy practices
+- payment: Pricing, refunds, billing terms
+- security: Account security, data protection
+- liability: Company liability, disclaimers, warranties
+- usage: Terms of use, restrictions, acceptable use
+- legal: Jurisdiction, dispute resolution, arbitration
 
 IMPORTANT: Output ONLY the JSON object. No markdown, no explanations, no thinking process, no notes."""
 
@@ -116,33 +124,30 @@ IMPORTANT: Output ONLY the JSON object. No markdown, no explanations, no thinkin
             print("Invalid structure. Using fallback.")
             return fallback_analysis(terms_data, response_text)
         
-        # Build the all_analysis array
-        all_analysis = []
+        # Get summary
+        summary = analysis_data.get("summary", "Analysis of the provided terms and conditions.")
         
-        # Add summary as first item with "info" flag
-        all_analysis.append({
-            "title": "Summary",
-            "analysis": analysis_data.get("summary", "Analysis of the provided terms and conditions."),
-            "flag": "info"
-        })
-        
-        # Add all findings
+        # Get all findings
         findings = analysis_data.get("findings", [])
         
-        # Validate findings
-        valid_findings = []
+        # Validate and format findings as items
+        items = []
         for finding in findings:
-            if isinstance(finding, dict) and "title" in finding and "analysis" in finding and "flag" in finding:
-                valid_findings.append(finding)
-        
-        all_analysis.extend(valid_findings)
+            if isinstance(finding, dict) and "title" in finding and "description" in finding and "flag" in finding:
+                items.append({
+                    "title": finding["title"],
+                    "description": finding["description"],
+                    "flag": finding["flag"],
+                    "category": finding.get("category", "general")
+                })
         
         # Calculate score based on flags
-        score = calculate_score(valid_findings)
+        score = calculate_score(items)
         
         return {
             "score": score,
-            "all_analysis": all_analysis
+            "summary": summary,
+            "items": items
         }
         
     except Exception as e:
@@ -168,14 +173,17 @@ SUMMARY: [2-3 sentences overview]
 FINDING 1: [Title]
 [Detailed explanation]
 FLAG: [critical/warning/good]
+CATEGORY: [privacy/payment/security/liability/usage/legal]
 
 FINDING 2: [Title]
 [Detailed explanation]
 FLAG: [critical/warning/good]
+CATEGORY: [privacy/payment/security/liability/usage/legal]
 
 FINDING 3: [Title]
 [Detailed explanation]
 FLAG: [critical/warning/good]
+CATEGORY: [privacy/payment/security/liability/usage/legal]
 
 Provide 3-5 findings. Be direct and concise. Do not include your thinking process or notes."""
 
@@ -188,43 +196,36 @@ Provide 3-5 findings. Be direct and concise. Do not include your thinking proces
         analysis_text = response.content.strip()
         
         # Parse structured format
-        all_analysis = []
+        items = []
+        summary = "Analysis of the provided terms and conditions."
         
         # Extract summary
         summary_match = analysis_text.split("SUMMARY:")
         if len(summary_match) > 1:
             summary_text = summary_match[1].split("FINDING")[0].strip()
-            all_analysis.append({
-                "title": "Summary",
-                "analysis": summary_text[:500] if len(summary_text) > 500 else summary_text,
-                "flag": "info"
-            })
-        else:
-            all_analysis.append({
-                "title": "Summary",
-                "analysis": "Analysis of the provided terms and conditions.",
-                "flag": "info"
-            })
+            summary = summary_text[:500] if len(summary_text) > 500 else summary_text
         
         # Extract findings
         import re
-        finding_pattern = r'FINDING \d+:\s*([^\n]+)\s*\n(.*?)\s*FLAG:\s*(critical|warning|good)'
+        finding_pattern = r'FINDING \d+:\s*([^\n]+)\s*\n(.*?)\s*FLAG:\s*(critical|warning|good)\s*(?:CATEGORY:\s*([^\n]+))?'
         findings = re.findall(finding_pattern, analysis_text, re.DOTALL | re.IGNORECASE)
         
-        for title, content, flag in findings:
-            all_analysis.append({
+        for title, content, flag, category in findings:
+            items.append({
                 "title": title.strip(),
-                "analysis": content.strip()[:500] if len(content.strip()) > 500 else content.strip(),
-                "flag": flag.lower()
+                "description": content.strip()[:500] if len(content.strip()) > 500 else content.strip(),
+                "flag": flag.lower(),
+                "category": category.strip().lower() if category else "general"
             })
         
         # If regex didn't work, try simple line-by-line parsing
-        if len(all_analysis) <= 1:
+        if len(items) == 0:
             print("Regex parsing failed, using simple parsing...")
             lines = analysis_text.split('\n')
             current_title = None
             current_content = []
             current_flag = "warning"
+            current_category = "general"
             
             for line in lines:
                 line = line.strip()
@@ -234,14 +235,16 @@ Provide 3-5 findings. Be direct and concise. Do not include your thinking proces
                 if line.startswith("FINDING"):
                     # Save previous finding
                     if current_title:
-                        all_analysis.append({
+                        items.append({
                             "title": current_title,
-                            "analysis": ' '.join(current_content)[:500],
-                            "flag": current_flag
+                            "description": ' '.join(current_content)[:500],
+                            "flag": current_flag,
+                            "category": current_category
                         })
                     current_title = line.split(":", 1)[1].strip() if ":" in line else line
                     current_content = []
                     current_flag = "warning"
+                    current_category = "general"
                 elif line.startswith("FLAG:"):
                     flag_text = line.split(":", 1)[1].strip().lower()
                     if "critical" in flag_text:
@@ -250,43 +253,49 @@ Provide 3-5 findings. Be direct and concise. Do not include your thinking proces
                         current_flag = "good"
                     else:
                         current_flag = "warning"
+                elif line.startswith("CATEGORY:"):
+                    current_category = line.split(":", 1)[1].strip().lower()
                 elif current_title:
                     current_content.append(line)
             
             # Add last finding
             if current_title:
-                all_analysis.append({
+                items.append({
                     "title": current_title,
-                    "analysis": ' '.join(current_content)[:500],
-                    "flag": current_flag
+                    "description": ' '.join(current_content)[:500],
+                    "flag": current_flag,
+                    "category": current_category
                 })
         
         # Ensure we have at least some findings
-        if len(all_analysis) <= 1:
-            all_analysis.append({
+        if len(items) == 0:
+            items.append({
                 "title": "Analysis Completed",
-                "analysis": "The terms have been reviewed. Please check the full response for details.",
-                "flag": "warning"
+                "description": "The terms have been reviewed. Please check the full response for details.",
+                "flag": "warning",
+                "category": "general"
             })
         
         # Calculate score
-        findings = all_analysis[1:]  # Exclude summary
-        score = calculate_score(findings)
+        score = calculate_score(items)
         
         return {
             "score": score,
-            "all_analysis": all_analysis
+            "summary": summary,
+            "items": items
         }
         
     except Exception as e:
         print(f"Fallback error: {e}")
         return {
             "score": 50,
-            "all_analysis": [
+            "summary": "Unable to analyze the terms. Please try again or check the server logs.",
+            "items": [
                 {
                     "title": "Analysis Error",
-                    "analysis": "Unable to analyze the terms. Please try again or check the server logs.",
-                    "flag": "warning"
+                    "description": "An error occurred during analysis. Please try again.",
+                    "flag": "warning",
+                    "category": "general"
                 }
             ]
         }
@@ -415,14 +424,15 @@ def analyze():
     
     Response:
     {
-        "score": 85,
-        "all_analysis": [
+        "score": 65,
+        "summary": "This ToS has moderate concerns...",
+        "items": [
             {
-                "title": "Summary",
-                "analysis": "...",
-                "flag": "info"
-            },
-            ...
+                "title": "Data Sharing",
+                "description": "They share data with third parties",
+                "flag": "warning",
+                "category": "privacy"
+            }
         ]
     }
     """
