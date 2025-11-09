@@ -1,0 +1,29 @@
+/* Styles for Terms & Conditions Detector */
+
+@keyframes float-bounce {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-5px) rotate(5deg);
+    }
+    50% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    75% {
+        transform: translateY(-3px) rotate(-5deg);
+    }
+}
+
+.terms-detector-overlay {
+    filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.8));
+    animation: float-bounce 2s ease-in-out infinite;
+    font-weight: bold;
+    user-select: none;
+}
+
+/* Ensure overlays stay on top */
+.terms-detector-overlay {
+    position: absolute !important;
+    z-index: 2147483647 !important;
+}
