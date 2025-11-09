@@ -50,30 +50,32 @@ def analyze_terms_and_conditions(terms_data: str) -> Dict[str, Any]:
     """
     
     # Step 1: Generate comprehensive analysis with flags
-    analysis_prompt = f"""Analyze these terms and conditions and provide your response ONLY as valid JSON.
+    analysis_prompt = f"""Analyze these terms and conditions. Provide ONLY the final JSON output. Do NOT include your thinking process, reasoning, or any text before or after the JSON.
 
 TERMS:
 {terms_data[:2000]}
 
-Respond with ONLY this JSON structure (no other text):
+Output format (ONLY this, nothing else):
 {{
-    "summary": "2-3 sentence overview",
+    "summary": "2-3 sentence overview of the terms",
     "findings": [
-        {{"title": "Issue name", "analysis": "Explanation", "flag": "critical"}},
-        {{"title": "Another issue", "analysis": "Details", "flag": "warning"}},
-        {{"title": "Good point", "analysis": "Description", "flag": "good"}}
+        {{"title": "First Issue", "analysis": "Clear explanation", "flag": "critical"}},
+        {{"title": "Second Point", "analysis": "Clear explanation", "flag": "warning"}},
+        {{"title": "Positive Aspect", "analysis": "Clear explanation", "flag": "good"}}
     ]
 }}
 
-Flag definitions:
-- critical: Data selling, no refunds, binding arbitration, unclear liability
-- warning: Vague terms, data sharing, limited rights
-- good: Clear policies, user protections, transparency
+Provide 4-6 findings covering key aspects.
 
-Respond with JSON only. No markdown, no explanations."""
+Flags:
+- critical: Data selling, no refunds, binding arbitration, unclear liability, excessive control
+- warning: Vague terms, data sharing, limited rights, jurisdiction issues
+- good: Clear policies, user protections, transparency, fair terms
+
+IMPORTANT: Output ONLY the JSON object. No markdown, no explanations, no thinking process, no notes."""
 
     messages = [
-        SystemMessage(content="You must respond with ONLY valid JSON. No markdown formatting, no explanations, just raw JSON."),
+        SystemMessage(content="You are a JSON-only response bot. Output ONLY valid JSON. Never include reasoning, thinking, or explanations. Just the raw JSON object."),
         HumanMessage(content=analysis_prompt)
     ]
     
@@ -153,57 +155,119 @@ def fallback_analysis(terms_data: str, error_info: str = "") -> Dict[str, Any]:
     """
     print("Using fallback analysis method...")
     
-    # Generate simpler analysis
-    simple_prompt = f"""Analyze these terms and conditions. List 3-5 key concerns or good points.
+    # Generate simpler, more structured analysis
+    simple_prompt = f"""Analyze these terms and conditions and provide ONLY the final analysis in a clear, structured format.
 
 TERMS:
-{terms_data[:1500]}
+{terms_data[:2000]}
 
-For each point, state:
-1. What it is
-2. Why it matters
-3. Is it critical, a warning, or good?
+Provide your analysis in this exact format:
 
-Be concise."""
+SUMMARY: [2-3 sentences overview]
+
+FINDING 1: [Title]
+[Detailed explanation]
+FLAG: [critical/warning/good]
+
+FINDING 2: [Title]
+[Detailed explanation]
+FLAG: [critical/warning/good]
+
+FINDING 3: [Title]
+[Detailed explanation]
+FLAG: [critical/warning/good]
+
+Provide 3-5 findings. Be direct and concise. Do not include your thinking process or notes."""
 
     try:
         response = llm.invoke([
-            SystemMessage(content="You are a legal analyst. Be concise and clear."),
+            SystemMessage(content="You are a legal analyst. Provide only the final analysis, no internal reasoning or notes."),
             HumanMessage(content=simple_prompt)
         ])
         
-        analysis_text = response.content
+        analysis_text = response.content.strip()
         
-        # Parse the response manually
-        all_analysis = [{
-            "title": "Summary",
-            "analysis": "The terms and conditions have been analyzed. See specific findings below.",
-            "flag": "info"
-        }]
+        # Parse structured format
+        all_analysis = []
         
-        # Try to extract points from the text
-        lines = analysis_text.split('\n')
-        current_item = None
+        # Extract summary
+        summary_match = analysis_text.split("SUMMARY:")
+        if len(summary_match) > 1:
+            summary_text = summary_match[1].split("FINDING")[0].strip()
+            all_analysis.append({
+                "title": "Summary",
+                "analysis": summary_text[:500] if len(summary_text) > 500 else summary_text,
+                "flag": "info"
+            })
+        else:
+            all_analysis.append({
+                "title": "Summary",
+                "analysis": "Analysis of the provided terms and conditions.",
+                "flag": "info"
+            })
         
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-                
-            # Check for flag keywords
-            flag = "warning"
-            if any(word in line.lower() for word in ["critical", "serious", "concerning", "dangerous"]):
-                flag = "critical"
-            elif any(word in line.lower() for word in ["good", "positive", "clear", "transparent", "protects"]):
-                flag = "good"
+        # Extract findings
+        import re
+        finding_pattern = r'FINDING \d+:\s*([^\n]+)\s*\n(.*?)\s*FLAG:\s*(critical|warning|good)'
+        findings = re.findall(finding_pattern, analysis_text, re.DOTALL | re.IGNORECASE)
+        
+        for title, content, flag in findings:
+            all_analysis.append({
+                "title": title.strip(),
+                "analysis": content.strip()[:500] if len(content.strip()) > 500 else content.strip(),
+                "flag": flag.lower()
+            })
+        
+        # If regex didn't work, try simple line-by-line parsing
+        if len(all_analysis) <= 1:
+            print("Regex parsing failed, using simple parsing...")
+            lines = analysis_text.split('\n')
+            current_title = None
+            current_content = []
+            current_flag = "warning"
             
-            # Add as finding
-            if len(line) > 20:  # Meaningful content
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith("SUMMARY"):
+                    continue
+                
+                if line.startswith("FINDING"):
+                    # Save previous finding
+                    if current_title:
+                        all_analysis.append({
+                            "title": current_title,
+                            "analysis": ' '.join(current_content)[:500],
+                            "flag": current_flag
+                        })
+                    current_title = line.split(":", 1)[1].strip() if ":" in line else line
+                    current_content = []
+                    current_flag = "warning"
+                elif line.startswith("FLAG:"):
+                    flag_text = line.split(":", 1)[1].strip().lower()
+                    if "critical" in flag_text:
+                        current_flag = "critical"
+                    elif "good" in flag_text:
+                        current_flag = "good"
+                    else:
+                        current_flag = "warning"
+                elif current_title:
+                    current_content.append(line)
+            
+            # Add last finding
+            if current_title:
                 all_analysis.append({
-                    "title": line[:50] + "..." if len(line) > 50 else line,
-                    "analysis": line,
-                    "flag": flag
+                    "title": current_title,
+                    "analysis": ' '.join(current_content)[:500],
+                    "flag": current_flag
                 })
+        
+        # Ensure we have at least some findings
+        if len(all_analysis) <= 1:
+            all_analysis.append({
+                "title": "Analysis Completed",
+                "analysis": "The terms have been reviewed. Please check the full response for details.",
+                "flag": "warning"
+            })
         
         # Calculate score
         findings = all_analysis[1:]  # Exclude summary
@@ -233,9 +297,9 @@ def calculate_score(findings: List[Dict[str, str]]) -> int:
     
     Scoring logic:
     - Start at 100
-    - Subtract 15 for each critical flag
-    - Subtract 7 for each warning flag
-    - Add 5 for each good flag
+    - Subtract 9 for each critical flag
+    - Subtract 5 for each warning flag
+    - Add 4 for each good flag
     - Minimum score is 0, maximum is 100
     """
     score = 100
