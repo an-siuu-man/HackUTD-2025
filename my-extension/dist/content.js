@@ -3,7 +3,18 @@
     'use strict';
     console.log('Terms & Conditions Detector - Content script loaded');
     // Target keywords to detect in links
-    const targetKeywords = ['terms', 'conditions', 'privacy', 'policy'];
+    const targetKeywords = [
+        'terms of service',
+        'terms and conditions',
+        'terms & conditions',
+        'privacy policy',
+        'cookie policy',
+        'user agreement',
+        'end user license agreement',
+        'eula',
+        'acceptable use policy',
+        'data policy'
+    ];
     const flaggedLinks = new WeakSet();
     const overlays = new Map();
     // Check if link text contains target keywords (must be a word boundary match)
