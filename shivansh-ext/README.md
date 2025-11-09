@@ -1,134 +1,24 @@
-# Terms Finder Chrome Extension
+## Inspiration
+When was the last time you read any terms of service or policy document? It is a guaranteed answer: never. A 2019 Pew Research Center study found that only 9% of U.S. adults say they "always" read a company's privacy policy before agreeing to it. Unknowingly, we give access to all our data, our pictures, and whatever we share online to the big companies. If there is any misuse or data breach online, we no longer hold any right to bring companies to court because we chose to skip reading through the terms and conditions, as it was too long for our eyes.  Plagued by the problem of not encouraging ourselves to go through the lengthy lines of terms and rules, we decided to make a creative solution to ease the discomfort of looking through long pages of company policies. You can easily summarize the details of the terms and sign the policies **On Your Terms** 
 
-A Chrome extension that automatically finds, analyzes, and saves Terms of Service compliance reports from web pages.
 
-## Features
+## What it does
+**On Your Terms** gives you a summarized view of companies' policies of data use and ranks the seriousness of the contract(s) with the score associated with them. This tool sits on your browser as an extension, scanning and flagging any hyperlinks containing company policy and terms. The tool analyzes the hidden contract terms in the background and assigns a score on how seriously you need to take the terms while committing to them. Don't worry if the contract document has a seriously low score ; you don't need to go through a 10-page-long contract. The tool also highlights the major points that need consideration on the side window. On Your Terms takes full care of its users by providing _one-on-one_ chat to further explain policy points where you need more assistance understanding the terms.
 
-- **Automatic Scanning**: Scans web pages for "terms" related links
-- **AI Analysis**: Analyzes terms and conditions using AI/LLM via n8n workflow
-- **Compliance Scoring**: Displays a compliance score (0-100) with detailed analysis
-- **Save Reports**: Save analyzed reports to your account with one click
-- **Visual Indicators**: Shows score badges next to terms links on pages
-- **Side Panel**: Beautiful side panel to view detailed analysis
-- **Integration Ready**: Connects with n8n workflows and Supabase backend
+## How we built it
+We automated the whole process of scanning the website, flagging the hyperlinks, analyzing the terms, and providing chat assistance with the n8n workflow automation tool in the background. The browser extension built on manifest.json sits at the frontend, scanning and interacting with the user on chat, while the automation workflow sits at the backend, acting on trigger events to parse data from the frontend, storing it in a database, passing back the score to the frontend, allowing the user to interact with NVIDIA's Nemotron agentic AI if the user chooses to. We had a seamless integration of a browser extension, a safe database, and a robust AI chatbot using LangChain, solving the tedious task of reading terms and conditions in minutes instead of hours.
+ 
 
-## New Features
+## Challenges we ran into
+It was our first time working with a browser extension, n8n automation workflow, and LangChain. We encountered errors with data mismatch while implementing these tools, but they weren't that tough to handle. We had major trouble working with the browser extension. Since the browser extension doesn't allow the use of a library like Selenium to scrape the data on the website in the background, we spent a long time before we were able to scrape and send the scraped data to the endpoint. We had another big trouble routing the scraped data to the LangChain. We faced some trouble while integrating all the tools on the n8n automation tool as well, due to differences in the expected and delivered data types. We were able to tackle all the errors with localized debugging and gradually integrate the whole tool chains to put a robust model.
 
-### 🎉 Save Report Button
-- Save analyzed T&C reports directly to your user account
-- One-click save operation from the side panel
-- Integrated with n8n "save-to-account" workflow
-- User authentication with persistent storage
+## Accomplishments that we're proud of
+We are proud that we were able to solve the problem we face every day, but we casually choose to ignore it. We couldn't think of a better use of AI than to make tedious tasks easier and prevent everyone from silent privacy invasion. Making a fully working system that brings different tech into a single automated integration to tackle a normal person faces on a daily basis is what we expected to gain from this hackathon.  Besides, we also got to learn so many new tools like LangChain, n8n automation, and building a browser extension. Overall, it has been a 10/10 project based on the complexity of the problem statement, impact on daily life, and learning outcomes.
 
-[See detailed Save Report documentation →](./SAVE_REPORT_GUIDE.md)
+## What we learned
+Besides the website designing tool, every tool we used was new for us. We learned LangChain, building a browser extension, n8n automation, mand aking an AI chatbot. 
 
-## Installation Steps
-
-### Step 1: Load the Extension in Chrome
-
-1. Open Chrome and go to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in the top right corner)
-3. Click "Load unpacked"
-4. Navigate to the `shivansh-ext` folder and select it
-5. The extension should now appear in your extensions list
-
-### Step 2: Using the Extension
-
-#### Automatic Detection (When Page Loads)
-- Just browse to any website
-- Open Chrome DevTools (F12 or Right-click > Inspect)
-- Go to the "Console" tab
-- The extension automatically finds terms links and prints them to the console
-
-#### Manual Search
-1. Click the extension icon in your Chrome toolbar
-2. Click the "Find Terms Links" button
-3. View results in the popup and console
-4. Click any found link to fetch its full content (printed to console)
-
-## How It Works
-
-1. **Content Script** (`content.js`): Runs on every webpage and scans for links containing terms-related keywords
-2. **Background Script** (`background.js`): Handles logging and fetching terms page content
-3. **Popup** (`popup.html`, `popup.js`): Provides a user interface for manual searches
-
-## Output
-
-All output is displayed in the Chrome DevTools Console:
-- List of found terms links with their URLs
-- Full text content of terms pages when clicked
-
-## Keywords Detected
-
-The extension looks for these keywords in link text and URLs:
-- terms
-- terms and conditions
-- terms of service
-- terms of use
-- tos
-
-## Files Structure
-
-```plain
-shivansh-ext/
-├── manifest.json       # Extension configuration
-├── content.js          # Scans pages for terms links
-├── background.js       # Handles logging and fetching
-├── popup.html          # Extension popup UI
-├── popup.js            # Popup functionality
-└── README.md           # This file
-```
-
-## Troubleshooting
-
-- **Extension not working**: Make sure Developer mode is enabled in chrome://extensions/
-- **No output in console**: Open DevTools (F12) and check the Console tab
-- **Links not found**: Some websites may structure their links differently; the extension looks for common patterns
-- **Save button not working**: Check that n8n workflow is active and webhook URL is configured
-
-## Configuration
-
-### Set Save Webhook URL
-```javascript
-// Open Chrome DevTools console on any page
-chrome.storage.local.set({ 
-  saveWebhookUrl: 'http://localhost:5678/webhook/save-to-account' 
-});
-```
-
-### Set User ID (for saving reports)
-```javascript
-chrome.storage.local.set({ 
-  userId: 'your-user-id-here' 
-});
-```
-
-### Set Analysis Webhook URL
-```javascript
-chrome.storage.local.set({ 
-  n8nWebhookUrl: 'http://localhost:5678/webhook-test/compliance-analyzer' 
-});
-```
-
-## Integration
-
-### n8n Workflows Required
-
-1. **Compliance Analyzer** (for analyzing T&C)
-   - Webhook endpoint: `/webhook-test/compliance-analyzer`
-   - Returns analysis data with score and details
-
-2. **Save to Account** (for saving reports)
-   - Webhook endpoint: `/webhook/save-to-account`
-   - Import workflow from: `save website.json` (in project root)
-   - Saves to Supabase `user_saved_websites` table
-
-See [Save Report Guide](./SAVE_REPORT_GUIDE.md) for detailed integration instructions.
-
-## Development
-
-To modify the extension:
-1. Make changes to the files
-2. Go to `chrome://extensions/`
-3. Click the refresh icon on the extension card
-4. Reload the webpage you're testing on
+## What's next for On Your Terms
+We can expand the scope of On your Terms in following ways:
+1. Making an individualized chatbot for each user along with all the interaction history to provide more context.
+2. Expanding the use case of tool beyond just terms and conditions and policies link. 
