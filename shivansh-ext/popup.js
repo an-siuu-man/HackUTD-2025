@@ -1,53 +1,8 @@
 // Popup script
 document.addEventListener('DOMContentLoaded', () => {
   const findTermsBtn = document.getElementById('findTermsBtn');
-  const saveWebhookBtn = document.getElementById('saveWebhookBtn');
-  const webhookUrlInput = document.getElementById('webhookUrl');
-  const webhookStatus = document.getElementById('webhookStatus');
   const status = document.getElementById('status');
   const linksList = document.getElementById('linksList');
-  
-  // Load existing webhook URL
-  chrome.runtime.sendMessage({ action: 'getN8nWebhook' }, (response) => {
-    if (response && response.url) {
-      webhookUrlInput.value = response.url;
-      webhookStatus.textContent = '✅ Webhook configured';
-      webhookStatus.style.color = 'green';
-    }
-  });
-  
-  // Save webhook URL
-  saveWebhookBtn.addEventListener('click', () => {
-    const url = webhookUrlInput.value.trim();
-    
-    if (!url) {
-      webhookStatus.textContent = '❌ Please enter a URL';
-      webhookStatus.style.color = 'red';
-      return;
-    }
-    
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch (e) {
-      webhookStatus.textContent = '❌ Invalid URL format';
-      webhookStatus.style.color = 'red';
-      return;
-    }
-    
-    chrome.runtime.sendMessage({
-      action: 'setN8nWebhook',
-      url: url
-    }, (response) => {
-      if (response && response.success) {
-        webhookStatus.textContent = '✅ Webhook saved successfully!';
-        webhookStatus.style.color = 'green';
-      } else {
-        webhookStatus.textContent = '❌ Failed to save webhook';
-        webhookStatus.style.color = 'red';
-      }
-    });
-  });
   
   findTermsBtn.addEventListener('click', async () => {
     status.textContent = 'Searching for terms links...';
@@ -76,7 +31,34 @@ document.addEventListener('DOMContentLoaded', () => {
             links.forEach((link, index) => {
               const linkItem = document.createElement('div');
               linkItem.className = 'link-item';
-              linkItem.textContent = `${index + 1}. ${link.text}`;
+              
+              // Add SVG icon
+              const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+              icon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+              icon.setAttribute('width', '24');
+              icon.setAttribute('height', '24');
+              icon.setAttribute('viewBox', '0 0 24 24');
+              icon.setAttribute('fill', 'none');
+              icon.setAttribute('stroke', 'currentColor');
+              icon.setAttribute('stroke-width', '2');
+              icon.setAttribute('stroke-linecap', 'round');
+              icon.setAttribute('stroke-linejoin', 'round');
+              
+              const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              path1.setAttribute('d', 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z');
+              
+              const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+              polyline.setAttribute('points', '14 2 14 8 20 8');
+              
+              icon.appendChild(path1);
+              icon.appendChild(polyline);
+              
+              // Add text
+              const textSpan = document.createElement('span');
+              textSpan.textContent = `${index + 1}. ${link.text}`;
+              
+              linkItem.appendChild(icon);
+              linkItem.appendChild(textSpan);
               linkItem.title = link.url;
               
               linkItem.addEventListener('click', () => {
