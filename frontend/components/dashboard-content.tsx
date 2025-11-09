@@ -48,7 +48,7 @@ export function DashboardContent() {
       className="p-8"
     >
       <motion.div variants={itemVariants} transition={{ duration: 0.4 }} className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <h1 className="text-3xl font-bold font-heading text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">Overview of your terms and conditions analysis</p>
       </motion.div>
 
@@ -56,7 +56,7 @@ export function DashboardContent() {
       <motion.div variants={itemVariants} transition={{ duration: 0.4 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Agreements</CardTitle>
+            <CardTitle className="text-sm font-medium font-subheading text-gray-600">Total Agreements</CardTitle>
             <Shield className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
@@ -67,7 +67,7 @@ export function DashboardContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Average Safety Score</CardTitle>
+            <CardTitle className="text-sm font-medium font-subheading text-gray-600">Average Safety Score</CardTitle>
             <TrendingUp className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
@@ -78,7 +78,7 @@ export function DashboardContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Critical Issues</CardTitle>
+            <CardTitle className="text-sm font-medium font-subheading text-gray-600">Critical Issues</CardTitle>
             <AlertTriangle className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
@@ -89,7 +89,7 @@ export function DashboardContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Recent Signups</CardTitle>
+            <CardTitle className="text-sm font-medium font-subheading text-gray-600">Recent Signups</CardTitle>
             <CheckCircle className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
@@ -103,7 +103,7 @@ export function DashboardContent() {
       <motion.div variants={itemVariants} transition={{ duration: 0.4 }}>
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Overall Safety Score</CardTitle>
+            <CardTitle className="font-subheading">Overall Safety Score</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center py-8">
             <CircularScore score={stats.averageScore} size={200} />
@@ -115,7 +115,7 @@ export function DashboardContent() {
       <motion.div variants={itemVariants} transition={{ duration: 0.4 }}>
         <Card>
           <CardHeader>
-            <CardTitle>Recent Signups</CardTitle>
+            <CardTitle className="font-subheading">Recent Signups</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -127,7 +127,7 @@ export function DashboardContent() {
                 <div className="flex items-center gap-4">
                   <CircularScore score={website.score} size={50} />
                   <div>
-                    <h3 className="font-semibold text-gray-900">{website.name}</h3>
+                    <h3 className="font-semibold font-subheading text-gray-900">{website.name}</h3>
                     <p className="text-sm text-gray-500">{website.date}</p>
                   </div>
                 </div>

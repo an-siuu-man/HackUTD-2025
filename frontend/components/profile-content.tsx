@@ -31,7 +31,7 @@ export function ProfileContent() {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile</h1>
+        <h1 className="text-3xl font-bold font-heading text-gray-900 mb-2">Profile</h1>
         <p className="text-gray-600">Manage your account information</p>
       </motion.div>
 
@@ -39,7 +39,7 @@ export function ProfileContent() {
         {/* Profile Info */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+            <CardTitle className="font-subheading">Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Avatar */}
@@ -48,7 +48,7 @@ export function ProfileContent() {
                 <User className="w-10 h-10 text-green-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">{name}</h3>
+                <h3 className="font-semibold font-subheading text-gray-900">{name}</h3>
                 <p className="text-sm text-gray-500">{email}</p>
               </div>
             </div>
@@ -108,14 +108,14 @@ export function ProfileContent() {
         {/* Account Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>Account Statistics</CardTitle>
+            <CardTitle className="font-subheading">Account Statistics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-green-600" />
                 <div>
-                  <p className="font-medium text-gray-900">Total Agreements</p>
+                  <p className="font-medium font-subheading text-gray-900">Total Agreements</p>
                   <p className="text-sm text-gray-500">Websites analyzed</p>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export function ProfileContent() {
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-green-600" />
                 <div>
-                  <p className="font-medium text-gray-900">Average Safety Score</p>
+                  <p className="font-medium font-subheading text-gray-900">Average Safety Score</p>
                   <p className="text-sm text-gray-500">Across all sites</p>
                 </div>
               </div>
@@ -137,7 +137,7 @@ export function ProfileContent() {
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-red-600" />
                 <div>
-                  <p className="font-medium text-gray-900">Critical Issues Found</p>
+                  <p className="font-medium font-subheading text-gray-900">Critical Issues Found</p>
                   <p className="text-sm text-gray-500">Require attention</p>
                 </div>
               </div>

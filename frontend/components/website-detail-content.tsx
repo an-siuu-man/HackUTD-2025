@@ -128,7 +128,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">{data.name}</h1>
+          <h1 className="text-3xl font-bold font-heading text-gray-900">{data.name}</h1>
           <Button variant="outline" asChild>
             <a href={data.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-4 h-4 mr-2" />
@@ -148,7 +148,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
           {/* Safety Score */}
           <Card>
             <CardHeader>
-              <CardTitle>Safety Score</CardTitle>
+              <CardTitle className="font-subheading">Safety Score</CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center py-8">
               <CircularScore score={data.score} size={180} />
@@ -158,7 +158,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
           {/* AI Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>AI Summary</CardTitle>
+              <CardTitle className="font-subheading">AI Summary</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 leading-relaxed">{data.summary}</p>
@@ -168,7 +168,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
           {/* Flagged Issues */}
           <Card>
             <CardHeader>
-              <CardTitle>Flagged Issues</CardTitle>
+              <CardTitle className="font-subheading">Flagged Issues</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {data.alerts.map((alert: any, index: number) => (
@@ -182,7 +182,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
         <div className="lg:col-span-1">
           <Card className="sticky top-8">
             <CardHeader>
-              <CardTitle>Ask Questions</CardTitle>
+              <CardTitle className="font-subheading">Ask Questions</CardTitle>
             </CardHeader>
             <CardContent>
               <ChatWindow websiteName={data.name} />
