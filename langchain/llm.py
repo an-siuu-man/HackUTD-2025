@@ -13,14 +13,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize the NVIDIA AI Endpoints client
-# You need to set NVIDIA_API_KEY environment variable
+# Initialize the NVIDIA AI Endpoints
 llm = ChatNVIDIA(
-    model="nvidia/nemotron-nano-12b-v2-vl",
+    model="nvidia/llama-3.3-nemotron-super-49b-v1.5",
     api_key=os.getenv("NVIDIA_API_KEY"),
-    temperature=0.7,
+    temperature=0.3,  
     top_p=0.9,
-    max_tokens=1024,
+    max_completion_tokens=4096,
 )
 
 def simple_chat(user_message: str) -> str:
