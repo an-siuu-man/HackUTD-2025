@@ -48,7 +48,7 @@ export function AlertBox({ type, title, description }: AlertBoxProps) {
       <div className="flex gap-3">
         <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${style.icon}`} />
         <div className="flex-1">
-          <h4 className={`font-semibold mb-1 ${style.title}`}>{title}</h4>
+          <h4 className={`font-semibold font-subheading mb-1 ${style.title}`}>{title}</h4>
           <p className={`text-sm leading-relaxed ${style.description}`}>{description}</p>
         </div>
       </div>

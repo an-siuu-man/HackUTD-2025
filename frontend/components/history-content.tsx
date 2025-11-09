@@ -59,7 +59,7 @@ export function HistoryContent() {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">History</h1>
+        <h1 className="text-3xl font-bold font-heading text-gray-900 mb-2">History</h1>
         <p className="text-gray-600">View all your analyzed terms and conditions</p>
       </motion.div>
 
@@ -90,7 +90,7 @@ export function HistoryContent() {
       >
         <Card>
         <CardHeader>
-          <CardTitle>Your Agreements ({filteredWebsites.length})</CardTitle>
+          <CardTitle className="font-subheading">Your Agreements ({filteredWebsites.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <motion.div
@@ -108,7 +108,7 @@ export function HistoryContent() {
                 <div className="flex items-center gap-4 flex-1">
                   <CircularScore score={website.score} size={50} />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+                    <h3 className="font-semibold font-subheading text-gray-900 group-hover:text-green-700 transition-colors">
                       {website.name}
                     </h3>
                     <p className="text-sm text-gray-500">Signed up: {website.date}</p>

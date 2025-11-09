@@ -81,7 +81,7 @@ export default function SignupPage() {
       >
         <Card className="shadow-xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold text-center">Create Account</CardTitle>
+            <CardTitle className="text-3xl font-bold font-heading text-center">Create Account</CardTitle>
             <CardDescription className="text-center">
               Enter your information to get started
             </CardDescription>

@@ -38,7 +38,7 @@ export function Sidebar() {
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-8 h-8 text-green-600" />
           <div>
-            <h1 className="text-xl font-bold text-gray-900">T&C Guardian</h1>
+            <h1 className="text-xl font-bold font-heading text-gray-900">T&C Guardian</h1>
             <p className="text-xs text-gray-500">Terms Analysis</p>
           </div>
         </div>
