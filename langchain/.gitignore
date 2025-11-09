@@ -1,0 +1,7 @@
+# Ignore dotenv files anywhere in the repository
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
+**/venv/
+**/venv/**
