@@ -502,6 +502,52 @@ def chatbot():
             "error": str(e)
         }), 500
 
+@app.route('/chat', methods=['POST'])
+def chat():
+    """
+    Chat endpoint for n8n integration
+    
+    Request body (from n8n):
+    {
+        "terms_data": "The full terms and conditions text",
+        "question": "User's question"
+    }
+    
+    Response:
+    {
+        "answer": "AI's answer"
+    }
+    """
+    try:
+        data = request.json
+        terms_data = data.get('terms_data', '')
+        question = data.get('question', '')
+        
+        if not terms_data:
+            return jsonify({
+                "error": "terms_data is required"
+            }), 400
+        
+        if not question:
+            return jsonify({
+                "error": "question is required"
+            }), 400
+        
+        # Generate a simple conversation ID for this request
+        conversation_id = str(uuid.uuid4())
+        
+        # Get chatbot response
+        response_text = chatbot_response(terms_data, question, conversation_id)
+        
+        return jsonify({
+            "answer": response_text
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+
 @app.route('/api/chatbot/reset', methods=['POST'])
 def reset_conversation():
     """
@@ -571,6 +617,7 @@ if __name__ == '__main__':
     print(f"Endpoints:")
     print(f"  - POST /api/analyze     - Analyze terms & conditions")
     print(f"  - POST /api/chatbot     - Ask questions about terms")
+    print(f"  - POST /chat            - n8n integration endpoint")
     print(f"  - POST /api/chatbot/reset - Reset conversation")
     print(f"  - GET  /health          - Health check")
     print("=" * 60)

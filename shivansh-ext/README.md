@@ -1,13 +1,26 @@
 # Terms Finder Chrome Extension
 
-A Chrome extension that automatically finds and displays Terms of Service links on web pages.
+A Chrome extension that automatically finds, analyzes, and saves Terms of Service compliance reports from web pages.
 
 ## Features
 
-- Automatically scans web pages for "terms" related links
-- Finds links containing: terms, terms and conditions, terms of service, terms of use, TOS
-- Prints found links to the browser console
-- Click on links in the popup to fetch and print the full terms page content
+- **Automatic Scanning**: Scans web pages for "terms" related links
+- **AI Analysis**: Analyzes terms and conditions using AI/LLM via n8n workflow
+- **Compliance Scoring**: Displays a compliance score (0-100) with detailed analysis
+- **Save Reports**: Save analyzed reports to your account with one click
+- **Visual Indicators**: Shows score badges next to terms links on pages
+- **Side Panel**: Beautiful side panel to view detailed analysis
+- **Integration Ready**: Connects with n8n workflows and Supabase backend
+
+## New Features
+
+### 🎉 Save Report Button
+- Save analyzed T&C reports directly to your user account
+- One-click save operation from the side panel
+- Integrated with n8n "save-to-account" workflow
+- User authentication with persistent storage
+
+[See detailed Save Report documentation →](./SAVE_REPORT_GUIDE.md)
 
 ## Installation Steps
 
@@ -71,6 +84,46 @@ shivansh-ext/
 - **Extension not working**: Make sure Developer mode is enabled in chrome://extensions/
 - **No output in console**: Open DevTools (F12) and check the Console tab
 - **Links not found**: Some websites may structure their links differently; the extension looks for common patterns
+- **Save button not working**: Check that n8n workflow is active and webhook URL is configured
+
+## Configuration
+
+### Set Save Webhook URL
+```javascript
+// Open Chrome DevTools console on any page
+chrome.storage.local.set({ 
+  saveWebhookUrl: 'http://localhost:5678/webhook/save-to-account' 
+});
+```
+
+### Set User ID (for saving reports)
+```javascript
+chrome.storage.local.set({ 
+  userId: 'your-user-id-here' 
+});
+```
+
+### Set Analysis Webhook URL
+```javascript
+chrome.storage.local.set({ 
+  n8nWebhookUrl: 'http://localhost:5678/webhook-test/compliance-analyzer' 
+});
+```
+
+## Integration
+
+### n8n Workflows Required
+
+1. **Compliance Analyzer** (for analyzing T&C)
+   - Webhook endpoint: `/webhook-test/compliance-analyzer`
+   - Returns analysis data with score and details
+
+2. **Save to Account** (for saving reports)
+   - Webhook endpoint: `/webhook/save-to-account`
+   - Import workflow from: `save website.json` (in project root)
+   - Saves to Supabase `user_saved_websites` table
+
+See [Save Report Guide](./SAVE_REPORT_GUIDE.md) for detailed integration instructions.
 
 ## Development
 

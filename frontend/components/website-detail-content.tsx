@@ -1,118 +1,83 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CircularScore } from "@/components/circular-score"
 import { AlertBox } from "@/components/alert-box"
 import { ChatWindow } from "@/components/chat-window"
-import { ArrowLeft, Calendar, ExternalLink } from "lucide-react"
+import { ArrowLeft, Calendar, ExternalLink, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-// Mock data
-const websiteData: Record<string, any> = {
-  "1": {
-    name: "Amazon",
-    score: 85,
-    date: "2025-01-15",
-    url: "https://amazon.com",
-    summary:
-      "Amazon's terms and conditions are generally user-friendly with clear language about purchases, returns, and account management. The company provides reasonable data protection measures and transparent policies regarding third-party sellers.",
-    alerts: [
-      {
-        type: "info",
-        title: "Data Collection",
-        description:
-          "Amazon collects extensive browsing and purchase history data to improve recommendations and services. This data is shared with subsidiaries and may be used for advertising purposes.",
-      },
-      {
-        type: "warning",
-        title: "Automatic Renewals",
-        description:
-          "Prime memberships and subscriptions automatically renew unless cancelled. Amazon charges your payment method on file without additional notice before each renewal period.",
-      },
-    ],
-  },
-  "2": {
-    name: "Facebook",
-    score: 62,
-    date: "2025-01-14",
-    url: "https://facebook.com",
-    summary:
-      "Facebook's terms include broad data collection and usage rights. The platform reserves extensive rights to your content and can modify the service at any time.",
-    alerts: [
-      {
-        type: "critical",
-        title: "Content Rights",
-        description:
-          "By posting content, you grant Facebook a non-exclusive, transferable, sub-licensable, royalty-free, worldwide license to use any content you post. This includes the right to modify and distribute your content.",
-      },
-      {
-        type: "critical",
-        title: "Data Sharing",
-        description:
-          "Facebook shares your data with third-party advertisers and affiliated companies. Your activity is tracked across websites and apps to build advertising profiles.",
-      },
-      {
-        type: "warning",
-        title: "Account Termination",
-        description:
-          "Facebook can terminate your account at any time without prior notice if they determine you have violated their terms, with limited appeal options.",
-      },
-    ],
-  },
-  "3": {
-    name: "Netflix",
-    score: 91,
-    date: "2025-01-13",
-    url: "https://netflix.com",
-    summary:
-      "Netflix maintains clear, concise terms with strong consumer protections. The service offers transparent pricing and straightforward cancellation policies.",
-    alerts: [
-      {
-        type: "info",
-        title: "Viewing History",
-        description:
-          "Netflix collects and stores your viewing history to provide personalized recommendations. This data may be used for content development decisions.",
-      },
-    ],
-  },
-  "4": {
-    name: "Discord",
-    score: 45,
-    date: "2025-01-12",
-    url: "https://discord.com",
-    summary:
-      "Discord's terms contain several concerning clauses regarding user content and liability limitations. The platform has broad content moderation powers.",
-    alerts: [
-      {
-        type: "critical",
-        title: "Forced Arbitration",
-        description:
-          "Users waive the right to participate in class action lawsuits. All disputes must be resolved through individual arbitration, limiting your legal options.",
-      },
-      {
-        type: "critical",
-        title: "Content Monitoring",
-        description:
-          "Discord reserves the right to monitor, scan, and review all content shared on the platform, including private messages, without prior notice.",
-      },
-      {
-        type: "warning",
-        title: "Age Restrictions",
-        description:
-          "Users must be 13 or older to use Discord. The platform may request age verification at any time and terminate accounts of underage users.",
-      },
-      {
-        type: "info",
-        title: "Server Liability",
-        description:
-          "Discord is not responsible for content in servers. Server owners and moderators have significant control over your experience and data within their servers.",
-      },
-    ],
-  },
-}
+import { getWebsiteBySnapshotId, WebsiteWithDetails } from "@/lib/website-service"
 
 export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
-  const data = websiteData[websiteId] || websiteData["1"]
+  const [data, setData] = useState<WebsiteWithDetails | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadWebsite() {
+      try {
+        setLoading(true)
+        console.log('Loading website with ID:', websiteId)
+        const snapshotId = parseInt(websiteId, 10)
+        
+        if (isNaN(snapshotId)) {
+          console.error('Invalid snapshot ID:', websiteId)
+          setError('Invalid website ID')
+          setLoading(false)
+          return
+        }
+
+        console.log('Fetching snapshot ID:', snapshotId)
+        const websiteData = await getWebsiteBySnapshotId(snapshotId)
+        
+        if (!websiteData) {
+          console.error('No website data found for snapshot ID:', snapshotId)
+          setError('Website not found')
+          setLoading(false)
+          return
+        }
+
+        console.log('Website data loaded:', websiteData)
+        setData(websiteData)
+        setError(null)
+      } catch (err) {
+        console.error('Error loading website:', err)
+        setError('Failed to load website data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadWebsite()
+  }, [websiteId])
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-20">
+          <p className="text-gray-500">Loading website details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-8">
+        <Link
+          href="/history"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to History</span>
+        </Link>
+        <div className="text-center py-20">
+          <p className="text-red-500">{error || 'Website not found'}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
@@ -128,9 +93,9 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold font-heading text-gray-900">{data.name}</h1>
+          <h1 className="text-3xl font-bold font-heading text-gray-900">{data.website_name}</h1>
           <Button variant="outline" asChild>
-            <a href={data.url} target="_blank" rel="noopener noreferrer">
+            <a href={data.website_url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-4 h-4 mr-2" />
               Visit Website
             </a>
@@ -138,7 +103,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
         </div>
         <div className="flex items-center gap-2 text-gray-600">
           <Calendar className="w-4 h-4" />
-          <span className="text-sm">Signed up: {data.date}</span>
+          <span className="text-sm">Saved: {data.date}</span>
         </div>
       </div>
 
@@ -156,24 +121,37 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
           </Card>
 
           {/* AI Summary */}
-          <Card>
+          <Card className="border-blue-200 bg-blue-50">
             <CardHeader>
-              <CardTitle className="font-subheading">AI Summary</CardTitle>
+              <CardTitle className="font-subheading flex items-center gap-2 text-blue-900">
+                <Sparkles className="w-5 h-5 text-blue-600" />
+                AI Summary
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700 leading-relaxed">{data.summary}</p>
+              <p className="text-blue-800 leading-relaxed">{data.summary}</p>
             </CardContent>
           </Card>
 
           {/* Flagged Issues */}
           <Card>
             <CardHeader>
-              <CardTitle className="font-subheading">Flagged Issues</CardTitle>
+              <CardTitle className="font-subheading">Privacy & Terms Analysis</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.alerts.map((alert: any, index: number) => (
-                <AlertBox key={index} type={alert.type} title={alert.title} description={alert.description} />
-              ))}
+              {data.alerts.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No issues found</p>
+              ) : (
+                data.alerts
+                  .sort((a: any, b: any) => {
+                    // Sort by severity: critical > warning > info > good
+                    const order = { critical: 0, warning: 1, info: 2, good: 3 }
+                    return order[a.type as keyof typeof order] - order[b.type as keyof typeof order]
+                  })
+                  .map((alert: any, index: number) => (
+                    <AlertBox key={index} type={alert.type} title={alert.title} description={alert.description} />
+                  ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -185,7 +163,7 @@ export function WebsiteDetailContent({ websiteId }: { websiteId: string }) {
               <CardTitle className="font-subheading">Ask Questions</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChatWindow websiteName={data.name} />
+              <ChatWindow websiteName={data.website_name} snapshotId={data.snapshot_id} />
             </CardContent>
           </Card>
         </div>

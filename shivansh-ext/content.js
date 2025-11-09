@@ -80,12 +80,12 @@ function addIconToLink(link, score = null) {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: white;
+      color: #111827;
       font-weight: 600;
       font-size: 12px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
       vertical-align: middle;
       position: relative;
@@ -95,12 +95,12 @@ function addIconToLink(link, score = null) {
     // Add hover effect
     badge.addEventListener('mouseenter', () => {
       badge.style.transform = 'scale(1.1)';
-      badge.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
+      badge.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.1)';
     });
     
     badge.addEventListener('mouseleave', () => {
       badge.style.transform = 'scale(1)';
-      badge.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+      badge.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.1)';
     });
     
     // Add click handler to open side panel
@@ -151,17 +151,24 @@ function updateBadgeScore(linkUrl, score) {
           badge.title = 'Terms Compliance Score - Click to view details';
           
           // Update color based on score
-          let gradient;
+          let bgColor, textColor;
           if (score >= 80) {
-            gradient = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'; // Green
+            bgColor = '#22c55e'; // Green
+            textColor = 'white';
           } else if (score >= 60) {
-            gradient = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'; // Orange
+            bgColor = '#84cc16'; // Lime
+            textColor = 'white';
+          } else if (score >= 40) {
+            bgColor = '#f59e0b'; // Yellow
+            textColor = 'white';
           } else {
-            gradient = 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'; // Red/Yellow
+            bgColor = '#ef4444'; // Red
+            textColor = 'white';
           }
-          badge.style.background = gradient;
+          badge.style.background = bgColor;
+          badge.style.color = textColor;
           badge.style.animation = 'pulse 0.5s ease';
-          console.log('🎨 Updated badge color to:', gradient);
+          console.log('🎨 Updated badge color to:', bgColor);
         } else {
           console.warn('⚠️ No badge found on matching link');
         }
@@ -233,7 +240,7 @@ function openSidePanel(analysisData) {
           <circle class="score-bg" cx="60" cy="60" r="50"></circle>
           <circle class="score-fg" cx="60" cy="60" r="50" 
                   style="stroke-dasharray: ${(data.score / 100) * 314}px 314px"></circle>
-          <text x="60" y="70" class="score-text">${data.score}</text>
+          <text x="60" y="60" class="score-text">${data.score}</text>
         </svg>
         ${data.cached ? '<div class="cached-badge">Cached</div>' : ''}
       </div>
@@ -257,6 +264,18 @@ function openSidePanel(analysisData) {
           </div>
         `).join('')}
       </div>
+      
+      <div class="panel-footer">
+        <button class="save-report-btn" id="saveReportBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Save Report
+        </button>
+        <div class="save-status" id="saveStatus"></div>
+      </div>
     </div>
   `;
   
@@ -266,6 +285,104 @@ function openSidePanel(analysisData) {
   const closeBtn = panel.querySelector('.close-btn');
   closeBtn.addEventListener('click', () => {
     panel.remove();
+  });
+  
+  // Add save report functionality
+  const saveBtn = panel.querySelector('#saveReportBtn');
+  const saveStatus = panel.querySelector('#saveStatus');
+  
+  saveBtn.addEventListener('click', async () => {
+    try {
+      // Disable button during save
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = '0.6';
+      saveStatus.textContent = 'Saving...';
+      saveStatus.style.color = '#6b7280';
+      
+      // Get user_id from storage (assuming user is logged in via extension or can be set)
+      const storage = await chrome.storage.local.get(['userId', 'saveWebhookUrl']);
+      let userId = storage.userId;
+      
+      if (!userId) {
+        // Prompt for user_id if not set
+        const inputUserId = prompt('Please enter your User ID to save this report:');
+        if (!inputUserId) {
+          saveStatus.textContent = 'Save cancelled';
+          saveStatus.style.color = '#f59e0b';
+          saveBtn.disabled = false;
+          saveBtn.style.opacity = '1';
+          return;
+        }
+        // Save userId for future use and use it for this request
+        await chrome.storage.local.set({ userId: inputUserId });
+        userId = inputUserId;
+      }
+      
+      // Get the snapshot_id from the analysis data (we'll need to store it when analysis comes back)
+      const snapshotId = data.snapshot_id || data.id;
+      
+      if (!snapshotId) {
+        saveStatus.textContent = 'Error: No snapshot ID found';
+        saveStatus.style.color = '#ef4444';
+        saveBtn.disabled = false;
+        saveBtn.style.opacity = '1';
+        return;
+      }
+      
+      // Get webhook URL from storage or use default
+      const webhookUrl = storage.saveWebhookUrl || 'http://localhost:5678/webhook/save-to-account';
+      
+      console.log('💾 Saving report with:', { userId, snapshotId, webhookUrl });
+      
+      // Send to n8n save webhook
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          snapshot_id: snapshotId
+        })
+      });
+      
+      if (response.ok) {
+        try {
+          const result = await response.json();
+          saveStatus.textContent = result.message || 'Report saved successfully! ✓';
+          saveStatus.style.color = '#22c55e';
+          
+          // Redirect to dashboard after a brief delay
+          setTimeout(() => {
+            window.open('http://localhost:3000/dashboard', '_blank');
+            saveStatus.textContent = '';
+          }, 1500);
+        } catch (jsonError) {
+          // If response is not JSON, just show success
+          console.warn('Response was not JSON, but request succeeded:', jsonError);
+          saveStatus.textContent = 'Report saved successfully! ✓';
+          saveStatus.style.color = '#22c55e';
+          
+          // Redirect to dashboard after a brief delay
+          setTimeout(() => {
+            window.open('http://localhost:3000/dashboard', '_blank');
+            saveStatus.textContent = '';
+          }, 1500);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Save failed with status:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+    } catch (error) {
+      console.error('Error saving report:', error);
+      saveStatus.textContent = 'Failed to save. Check console for details.';
+      saveStatus.style.color = '#ef4444';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.style.opacity = '1';
+    }
   });
   
   // Close on outside click
@@ -315,12 +432,12 @@ function injectStyles() {
       right: 0;
       width: 420px;
       height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+      background: #f9fafb;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
       z-index: 999999;
       display: flex;
       flex-direction: column;
-      color: white;
+      color: #111827;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       animation: slideIn 0.3s ease;
     }
@@ -332,25 +449,26 @@ function injectStyles() {
     
     #terms-finder-side-panel .panel-header {
       padding: 24px;
-      background: rgba(0, 0, 0, 0.2);
+      background: white;
       backdrop-filter: blur(10px);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      border-bottom: 1px solid #e5e7eb;
     }
     
     #terms-finder-side-panel .panel-header h2 {
       margin: 0;
       font-size: 24px;
       font-weight: 600;
+      color: #111827;
     }
     
     #terms-finder-side-panel .close-btn {
-      background: rgba(255, 255, 255, 0.2);
+      background: #f3f4f6;
       border: none;
-      color: white;
-      font-size: 32px;
+      color: #6b7280;
+      font-size: 28px;
       width: 40px;
       height: 40px;
       border-radius: 50%;
@@ -360,10 +478,13 @@ function injectStyles() {
       justify-content: center;
       transition: all 0.2s ease;
       line-height: 1;
+      padding: 0;
+      margin: 0;
     }
     
     #terms-finder-side-panel .close-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: #e5e7eb;
+      color: #111827;
       transform: rotate(90deg);
     }
     
@@ -378,12 +499,16 @@ function injectStyles() {
     }
     
     #terms-finder-side-panel .panel-content::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
+      background: #f3f4f6;
     }
     
     #terms-finder-side-panel .panel-content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+      background: #d1d5db;
       border-radius: 10px;
+    }
+    
+    #terms-finder-side-panel .panel-content::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
     }
     
     #terms-finder-side-panel .score-circle-container {
@@ -402,13 +527,13 @@ function injectStyles() {
     
     #terms-finder-side-panel .score-bg {
       fill: none;
-      stroke: rgba(255, 255, 255, 0.2);
+      stroke: #e5e7eb;
       stroke-width: 8;
     }
     
     #terms-finder-side-panel .score-fg {
       fill: none;
-      stroke: white;
+      stroke: #22c55e;
       stroke-width: 8;
       stroke-linecap: round;
       transition: stroke-dasharray 1s ease;
@@ -417,40 +542,45 @@ function injectStyles() {
     #terms-finder-side-panel .score-text {
       font-size: 36px;
       font-weight: 700;
-      fill: white;
+      fill: #111827;
       transform: rotate(90deg);
       transform-origin: center;
+      text-anchor: middle;
+      dominant-baseline: central;
     }
     
     #terms-finder-side-panel .cached-badge {
       margin-top: 12px;
       padding: 6px 12px;
-      background: rgba(255, 255, 255, 0.2);
+      background: #dbeafe;
+      color: #1e40af;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
     }
     
     #terms-finder-side-panel .summary-section {
-      background: rgba(255, 255, 255, 0.15);
+      background: white;
       backdrop-filter: blur(10px);
-      border-radius: 16px;
+      border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     
     #terms-finder-side-panel .summary-section h3 {
       margin: 0 0 12px 0;
       font-size: 18px;
       font-weight: 600;
+      color: #111827;
     }
     
     #terms-finder-side-panel .summary-section p {
       margin: 0;
       line-height: 1.6;
       font-size: 14px;
-      opacity: 0.95;
+      color: #4b5563;
     }
     
     #terms-finder-side-panel .items-section {
@@ -460,16 +590,18 @@ function injectStyles() {
     }
     
     #terms-finder-side-panel .analysis-item {
-      background: rgba(255, 255, 255, 0.15);
+      background: white;
       backdrop-filter: blur(10px);
       border-radius: 12px;
       padding: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       transition: all 0.2s ease;
     }
     
     #terms-finder-side-panel .analysis-item:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: #fafafa;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       transform: translateX(-4px);
     }
     
@@ -489,18 +621,18 @@ function injectStyles() {
     }
     
     #terms-finder-side-panel .flag-indicator.flag-good {
-      background: #38ef7d;
-      box-shadow: 0 0 8px #38ef7d;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
     }
     
     #terms-finder-side-panel .flag-indicator.flag-warning {
-      background: #f5576c;
-      box-shadow: 0 0 8px #f5576c;
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
     }
     
     #terms-finder-side-panel .flag-indicator.flag-critical {
-      background: #fee140;
-      box-shadow: 0 0 8px #fee140;
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
     }
     
     #terms-finder-side-panel .item-header h4 {
@@ -508,13 +640,14 @@ function injectStyles() {
       font-size: 15px;
       font-weight: 600;
       line-height: 1.4;
+      color: #111827;
     }
     
     #terms-finder-side-panel .item-description {
       margin: 0 0 12px 0;
       font-size: 13px;
       line-height: 1.6;
-      opacity: 0.9;
+      color: #6b7280;
     }
     
     #terms-finder-side-panel .item-meta {
@@ -524,12 +657,67 @@ function injectStyles() {
     
     #terms-finder-side-panel .category {
       padding: 4px 10px;
-      background: rgba(255, 255, 255, 0.2);
+      background: #f3f4f6;
+      color: #4b5563;
       border-radius: 12px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+    
+    #terms-finder-side-panel .panel-footer {
+      padding: 20px 24px;
+      background: white;
+      backdrop-filter: blur(10px);
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    #terms-finder-side-panel .save-report-btn {
+      width: 100%;
+      padding: 14px 20px;
+      background: #111827;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    #terms-finder-side-panel .save-report-btn:hover:not(:disabled) {
+      background: #1f2937;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    #terms-finder-side-panel .save-report-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    #terms-finder-side-panel .save-report-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    #terms-finder-side-panel .save-report-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    #terms-finder-side-panel .save-status {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      min-height: 20px;
+      transition: all 0.3s ease;
     }
   `;
   (document.head || document.documentElement).appendChild(style);

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Bot, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface Message {
   id: number
@@ -16,6 +18,7 @@ interface Message {
 
 interface ChatWindowProps {
   websiteName: string
+  snapshotId: number
 }
 
 const messageVariants = {
@@ -27,7 +30,7 @@ const messageVariants = {
   }
 }
 
-export function ChatWindow({ websiteName }: ChatWindowProps) {
+export function ChatWindow({ websiteName, snapshotId }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -57,19 +60,65 @@ export function ChatWindow({ websiteName }: ChatWindowProps) {
     }
 
     setMessages((prev) => [...prev, userMessage])
+    const question = input
     setInput("")
     setIsLoading(true)
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call n8n webhook
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || "http://localhost:5678/webhook/chat"
+      
+      console.log("Sending request to n8n webhook:", webhookUrl)
+      console.log("Request payload:", { snapshot_id: snapshotId, question })
+      
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          snapshot_id: snapshotId,
+          question: question,
+        }),
+      })
+
+      console.log("Response status:", response.status)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Response error:", errorText)
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log("Response data:", data)
+      
       const aiMessage: Message = {
         id: messages.length + 2,
         role: "assistant",
-        content: `That's a great question about ${websiteName}'s terms. Based on the analysis, I can help clarify that aspect for you. The terms state that...`,
+        content: data.answer || "I'm sorry, I couldn't process that question. Please try again.",
       }
       setMessages((prev) => [...prev, aiMessage])
+    } catch (error) {
+      console.error("Error calling n8n webhook:", error)
+      
+      let errorMsg = "I apologize, but I'm having trouble connecting to the analysis service."
+      
+      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
+        errorMsg = "Cannot connect to the n8n server. Please ensure:\n1. n8n is running (http://localhost:5678)\n2. The workflow is activated\n3. Check browser console for CORS errors"
+      } else if (error instanceof Error && error.message.includes("404")) {
+        errorMsg = "The n8n webhook is not registered. Please ensure the workflow is activated in n8n."
+      }
+      
+      const errorMessage: Message = {
+        id: messages.length + 2,
+        role: "assistant",
+        content: errorMsg,
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -94,7 +143,7 @@ export function ChatWindow({ websiteName }: ChatWindowProps) {
               className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
             {message.role === "assistant" && (
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4 text-green-600" />
               </div>
             )}
@@ -103,10 +152,18 @@ export function ChatWindow({ websiteName }: ChatWindowProps) {
                 message.role === "user" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-900"
               }`}
             >
-              <p className="text-sm leading-relaxed">{message.content}</p>
+              {message.role === "assistant" ? (
+                <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:mt-2 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              )}
             </div>
             {message.role === "user" && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                 <User className="w-4 h-4 text-gray-600" />
               </div>
             )}
@@ -120,7 +177,7 @@ export function ChatWindow({ websiteName }: ChatWindowProps) {
             exit={{ opacity: 0 }}
             className="flex gap-3 justify-start"
           >
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4 text-green-600" />
             </div>
             <div className="bg-gray-100 rounded-lg px-4 py-2">

@@ -2,7 +2,7 @@
 console.log('Terms Finder: Background script loaded');
 
 // Default webhook URL
-const DEFAULT_WEBHOOK_URL = "http://localhost:5678/webhook-test/compliance-analyzer";
+const DEFAULT_WEBHOOK_URL = "http://localhost:5678/webhook/compliance-analyzer";
 
 // Keep service worker alive and track pending requests
 const pendingRequests = new Map(); // url -> { tabId, timestamp }
@@ -179,6 +179,18 @@ async function sendToN8n(data, tabId = null) {
         try {
           const analysisData = JSON.parse(resultText);
           console.log('📊 Parsed analysis data:', analysisData);
+          
+          // Ensure snapshot_id is included in the analysis data
+          // The n8n workflow should return the snapshot_id, but if not, we'll generate a temporary one
+          if (analysisData && !analysisData.snapshot_id && !analysisData.id) {
+            // Generate a unique ID based on URL and timestamp
+            const urlHash = btoa(data.url).substring(0, 10);
+            const timestamp = Date.now();
+            analysisData.snapshot_id = `${urlHash}_${timestamp}`;
+            console.log('⚠️ No snapshot_id in response, generated temporary ID:', analysisData.snapshot_id);
+          } else if (analysisData && analysisData.id && !analysisData.snapshot_id) {
+            analysisData.snapshot_id = analysisData.id;
+          }
           
           // Get tabId from parameter or from pendingRequests
           let targetTabId = tabId;

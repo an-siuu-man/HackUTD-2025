@@ -1,10 +1,10 @@
 "use client"
 
-import { AlertCircle, Info, AlertTriangle } from "lucide-react"
+import { AlertCircle, Info, AlertTriangle, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface AlertBoxProps {
-  type: "critical" | "warning" | "info"
+  type: "critical" | "warning" | "info" | "good"
   title: string
   description: string
 }
@@ -32,6 +32,13 @@ export function AlertBox({ type, title, description }: AlertBoxProps) {
       description: "text-blue-800",
       IconComponent: Info,
     },
+    good: {
+      container: "bg-green-50 border-green-200",
+      icon: "text-green-600",
+      title: "text-green-900",
+      description: "text-green-800",
+      IconComponent: CheckCircle,
+    },
   }
 
   const style = styles[type]
@@ -46,7 +53,7 @@ export function AlertBox({ type, title, description }: AlertBoxProps) {
       className={`p-4 rounded-lg border ${style.container}`}
     >
       <div className="flex gap-3">
-        <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${style.icon}`} />
+        <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${style.icon}`} />
         <div className="flex-1">
           <h4 className={`font-semibold font-subheading mb-1 ${style.title}`}>{title}</h4>
           <p className={`text-sm leading-relaxed ${style.description}`}>{description}</p>

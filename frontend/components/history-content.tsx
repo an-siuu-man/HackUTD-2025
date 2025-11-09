@@ -1,26 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CircularScore } from "@/components/circular-score"
 import { ChevronRight, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { motion } from "framer-motion"
-
-// Mock data
-const websites = [
-  { id: "1", name: "Amazon", score: 85, date: "2025-01-15" },
-  { id: "2", name: "Facebook", score: 62, date: "2025-01-14" },
-  { id: "3", name: "Netflix", score: 91, date: "2025-01-13" },
-  { id: "4", name: "Discord", score: 45, date: "2025-01-12" },
-  { id: "5", name: "Spotify", score: 88, date: "2025-01-11" },
-  { id: "6", name: "Twitter", score: 58, date: "2025-01-10" },
-  { id: "7", name: "LinkedIn", score: 79, date: "2025-01-09" },
-  { id: "8", name: "Instagram", score: 64, date: "2025-01-08" },
-  { id: "9", name: "TikTok", score: 52, date: "2025-01-07" },
-  { id: "10", name: "YouTube", score: 82, date: "2025-01-06" },
-]
+import { useAuth } from "@/lib/auth-context"
+import { getUserSavedWebsites, WebsiteWithDetails } from "@/lib/website-service"
 
 const listVariants = {
   hidden: { opacity: 0 },
@@ -43,8 +31,38 @@ const itemVariants = {
 
 export function HistoryContent() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [websites, setWebsites] = useState<WebsiteWithDetails[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
 
-  const filteredWebsites = websites.filter((website) => website.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    async function loadWebsites() {
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const data = await getUserSavedWebsites(user.id)
+        setWebsites(data)
+        setError(null)
+      } catch (err) {
+        console.error('Error loading websites:', err)
+        setError('Failed to load websites')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadWebsites()
+  }, [user])
+
+  const filteredWebsites = websites.filter((website) => 
+    website.website_url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    website.domain.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <motion.div
@@ -93,6 +111,15 @@ export function HistoryContent() {
           <CardTitle className="font-subheading">Your Agreements ({filteredWebsites.length})</CardTitle>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading your websites...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">{error}</div>
+          ) : filteredWebsites.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {searchQuery ? 'No websites found matching your search.' : 'No saved websites yet.'}
+            </div>
+          ) : (
           <motion.div
             variants={listVariants}
             initial="hidden"
@@ -100,25 +127,44 @@ export function HistoryContent() {
             className="space-y-2"
           >
             {filteredWebsites.map((website) => (
-              <motion.div key={website.id} variants={itemVariants}>
+              <motion.div key={website.snapshot_id} variants={itemVariants}>
                 <Link
-                  href={`/history/${website.id}`}
+                  href={`/history/${website.snapshot_id}`}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
                 >
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
                   <CircularScore score={website.score} size={50} />
-                  <div className="flex-1">
-                    <h3 className="font-semibold font-subheading text-gray-900 group-hover:text-green-700 transition-colors">
-                      {website.name}
+                  
+                  {/* Website Favicon */}
+                  <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
+                    <img
+                      src={`https://www.google.com/s2/favicons?domain=${website.domain}&sz=64`}
+                      alt={website.domain}
+                      className="w-6 h-6"
+                      onError={(e) => {
+                        // Fallback to first letter if favicon fails
+                        e.currentTarget.style.display = 'none'
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                      }}
+                    />
+                    <div className="hidden text-gray-500 font-semibold text-sm">
+                      {website.domain.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold font-subheading text-gray-900 group-hover:text-green-700 transition-colors truncate">
+                      {website.website_url}
                     </h3>
-                    <p className="text-sm text-gray-500">Signed up: {website.date}</p>
+                    <p className="text-sm text-gray-500">Saved: {website.date}</p>
                   </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-700 transition-colors" />
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-700 transition-colors shrink-0" />
                 </Link>
               </motion.div>
             ))}
           </motion.div>
+          )}
         </CardContent>
       </Card>
       </motion.div>
