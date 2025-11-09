@@ -1,11 +1,31 @@
 // Background service worker
 console.log('Terms Finder: Background script loaded');
 
+// Log current webhook configuration on startup
+chrome.storage.local.get(['n8nWebhookUrl'], (result) => {
+  if (result.n8nWebhookUrl) {
+    console.log('✅ n8n Webhook URL configured:', result.n8nWebhookUrl);
+  } else {
+    console.log('⚠️ No webhook URL configured. Set it via the extension popup.');
+  }
+});
+
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('📨 Background received message:', request.action);
   
-  if (request.action === 'termsLinksFound') {
+  if (request.action === 'setN8nWebhook') {
+    chrome.storage.local.set({ n8nWebhookUrl: request.url }, () => {
+      console.log('✅ n8n webhook URL saved:', request.url);
+      sendResponse({ success: true, message: 'Webhook URL saved successfully!' });
+    });
+    return true;
+  } else if (request.action === 'getN8nWebhook') {
+    chrome.storage.local.get(['n8nWebhookUrl'], (result) => {
+      sendResponse({ url: result.n8nWebhookUrl || '' });
+    });
+    return true;
+  } else if (request.action === 'termsLinksFound') {
     console.log('✅ Found', request.links.length, 'terms links');
     
     const tabId = sender.tab?.id;
@@ -87,8 +107,61 @@ async function fetchTermsPage(url, linkText = '', index = '', tabId = null) {
       });
     }
     
+    // Send to n8n webhook (or langchain server)
+    await sendToN8n({
+      url: url,
+      terms_data: cleanedText,
+      fetchedAt: new Date().toISOString()
+    });
+    
   } catch (error) {
     console.error(`❌ Error fetching terms page (${url}):`, error);
+  }
+}
+
+// Function to send data to n8n workflow
+async function sendToN8n(data) {
+  try {
+    // Get the webhook URL from storage
+    const storage = await chrome.storage.local.get(['n8nWebhookUrl']);
+    const webhookUrl = storage.n8nWebhookUrl;
+    
+    if (!webhookUrl) {
+      console.log('⚠️ n8n webhook URL not configured. Set it in the popup or use chrome.storage.local.set({n8nWebhookUrl: "your-url"})');
+      return;
+    }
+    
+    console.log('📤 Sending to n8n webhook:', webhookUrl);
+    console.log('📦 Data payload:', JSON.stringify(data, null, 2));
+    
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    console.log('📊 Response status:', response.status, response.statusText);
+    
+    if (response.ok) {
+      console.log('✅ Successfully sent to n8n!');
+      const result = await response.text();
+      if (result) {
+        console.log('📨 Response:', result);
+      }
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Failed to send to n8n:', response.status, response.statusText);
+      console.error('Error details:', errorText);
+    }
+  } catch (error) {
+    console.error('❌ Error sending to n8n:', error);
+    console.error('Error type:', error.name);
+    console.error('Error message:', error.message);
+    if (error.cause) {
+      console.error('Error cause:', error.cause);
+    }
   }
 }
 

@@ -4,13 +4,33 @@
   <meta charset="UTF-8">
   <style>
     body {
-      width: 300px;
+      width: 350px;
       padding: 15px;
       font-family: Arial, sans-serif;
     }
     h2 {
       margin: 0 0 10px 0;
       font-size: 16px;
+    }
+    .section {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      box-sizing: border-box;
     }
     button {
       width: 100%;
@@ -25,6 +45,12 @@
     }
     button:hover {
       background-color: #45a049;
+    }
+    button.secondary {
+      background-color: #2196F3;
+    }
+    button.secondary:hover {
+      background-color: #0b7dda;
     }
     #status {
       margin-top: 10px;
@@ -50,13 +76,31 @@
     .link-item:hover {
       background-color: #c8e6c9;
     }
+    .webhook-status {
+      font-size: 11px;
+      color: #666;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
   <h2>Terms Finder</h2>
-  <button id="findTermsBtn">Find Terms Links</button>
-  <div id="status">Click button to find terms links on this page</div>
-  <div id="linksList"></div>
+  
+  <!-- n8n Webhook Configuration Section -->
+  <div class="section">
+    <div class="section-title">n8n Webhook Configuration</div>
+    <input type="text" id="webhookUrl" placeholder="Enter n8n webhook URL">
+    <button id="saveWebhookBtn" class="secondary">Save Webhook URL</button>
+    <div class="webhook-status" id="webhookStatus">No webhook configured</div>
+  </div>
+  
+  <!-- Terms Finder Section -->
+  <div class="section">
+    <div class="section-title">Find Terms & Conditions</div>
+    <button id="findTermsBtn">Find Terms Links</button>
+    <div id="status">Click button to find terms links on this page</div>
+    <div id="linksList"></div>
+  </div>
   
   <script src="popup.js"></script>
 </body>

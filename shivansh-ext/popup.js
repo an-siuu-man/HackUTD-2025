@@ -1,8 +1,53 @@
 // Popup script
 document.addEventListener('DOMContentLoaded', () => {
   const findTermsBtn = document.getElementById('findTermsBtn');
+  const saveWebhookBtn = document.getElementById('saveWebhookBtn');
+  const webhookUrlInput = document.getElementById('webhookUrl');
+  const webhookStatus = document.getElementById('webhookStatus');
   const status = document.getElementById('status');
   const linksList = document.getElementById('linksList');
+  
+  // Load existing webhook URL
+  chrome.runtime.sendMessage({ action: 'getN8nWebhook' }, (response) => {
+    if (response && response.url) {
+      webhookUrlInput.value = response.url;
+      webhookStatus.textContent = '✅ Webhook configured';
+      webhookStatus.style.color = 'green';
+    }
+  });
+  
+  // Save webhook URL
+  saveWebhookBtn.addEventListener('click', () => {
+    const url = webhookUrlInput.value.trim();
+    
+    if (!url) {
+      webhookStatus.textContent = '❌ Please enter a URL';
+      webhookStatus.style.color = 'red';
+      return;
+    }
+    
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch (e) {
+      webhookStatus.textContent = '❌ Invalid URL format';
+      webhookStatus.style.color = 'red';
+      return;
+    }
+    
+    chrome.runtime.sendMessage({
+      action: 'setN8nWebhook',
+      url: url
+    }, (response) => {
+      if (response && response.success) {
+        webhookStatus.textContent = '✅ Webhook saved successfully!';
+        webhookStatus.style.color = 'green';
+      } else {
+        webhookStatus.textContent = '❌ Failed to save webhook';
+        webhookStatus.style.color = 'red';
+      }
+    });
+  });
   
   findTermsBtn.addEventListener('click', async () => {
     status.textContent = 'Searching for terms links...';
